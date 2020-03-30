@@ -1,6 +1,3 @@
-/*
- *
- */
 package ru.g905.fool;
 
 import java.util.ArrayList;
