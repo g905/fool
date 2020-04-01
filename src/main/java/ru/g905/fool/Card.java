@@ -20,6 +20,10 @@ class Card implements Comparable {
         System.out.println(this.weight.rusName() + " " + this.suit.rusName());
     }
 
+    public String getCard() {
+        return this.weight.rusName() + " " + this.suit.rusName();
+    }
+
     public int getValue() {
         return value;
     }
@@ -34,6 +38,10 @@ class Card implements Comparable {
 
     public boolean isTrump(Suits trump) {
         return suit == trump;
+    }
+
+    public boolean greaterThan(Card c) {
+        return ((suit == c.getSuit() || suit == Suits.getTrump()) && value > c.getValue());
     }
 
     @Override

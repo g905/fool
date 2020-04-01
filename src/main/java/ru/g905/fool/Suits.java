@@ -12,6 +12,16 @@ enum Suits {
 
     final private int value;
 
+    private static Suits trump;
+
+    public static Suits getTrump() {
+        return trump;
+    }
+
+    public static void setTrump(Suits trump) {
+        Suits.trump = trump;
+    }
+
     Suits(int value) {
         this.value = value;
     }

@@ -11,11 +11,13 @@ class Stack {
 
     ArrayList<Card> cards = new ArrayList<>();
 
-    Stack() {
-        for (Suits s : Suits.values()) {
-            for (Weights w : Weights.values()) {
-                Card card = new Card(s, w);
-                cards.add(card);
+    Stack(boolean empty) {
+        if (!empty) {
+            for (Suits s : Suits.values()) {
+                for (Weights w : Weights.values()) {
+                    Card card = new Card(s, w);
+                    cards.add(card);
+                }
             }
         }
     }
@@ -39,6 +41,10 @@ class Stack {
 
     public void putCard(Card card) {
         cards.add(card);
+    }
+
+    public void putCards(ArrayList<Card> cards) {
+        this.cards.addAll(cards);
     }
 
     public void putCardToFirst(Card card) {
