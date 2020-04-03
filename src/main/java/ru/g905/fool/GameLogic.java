@@ -1,8 +1,6 @@
 package ru.g905.fool;
 
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.ListIterator;
 import java.util.Scanner;
 
 /**
@@ -19,7 +17,9 @@ public class GameLogic implements IGameLogic {
 
     private Stack beaten;
 
-    private final int CARDS_QUANTITY = 6;
+    private Player fool;
+
+    public static final int CARDS_QUANTITY = 6;
 
     private int firstPlayerIdx;
 
@@ -95,7 +95,7 @@ public class GameLogic implements IGameLogic {
         for (Player p : players) {
             Card lowesTrump = p.getLowestTrump(trump);
             if (lowesTrump != null) {
-                if (lowesTrump.compareTo(first.getLowestTrump(trump)) < 0) {
+                if (first.getLowestTrump(trump) == null || lowesTrump.compareTo(first.getLowestTrump(trump)) < 0) {
                     first = p;
                 }
             }
@@ -105,34 +105,17 @@ public class GameLogic implements IGameLogic {
 
     /**
      *
+     * @todo: Если игрок вышел из игры, то не выбирать его в оппоненты
      * @param idx
      * @return
      */
     private Player getOpponent(Player p) {
         int idx = players.indexOf(p);
-        if (idx >= players.size() - 1) {
-            idx = -1;
+        if (idx == players.size() - 1) {
+            return players.get(0);
+        } else {
+            return players.get(idx + 1);
         }
-        return players.get(idx + 1);
-    }
-
-    private Player getPlayer(int idx) {
-        if (idx >= players.size()) {
-            idx = 0;
-        }
-        Player p = players.get(idx);
-        if (p.getCards().size() <= 0) {
-            System.out.println("Игрок " + p.getName() + " выходит из игры.");
-            Player pl = p;
-            p = players.get(++idx);
-            players.remove(pl);
-        }
-        if (p.getSkip()) {
-            System.out.println("Игрок " + p.getName() + " пропускает ход");
-            p.setSkip(false);
-            p = players.get(++idx);
-        }
-        return p;
     }
 
     public void loop() throws Exception {
@@ -148,75 +131,88 @@ public class GameLogic implements IGameLogic {
             p.printName();
         }
 
+        int i = 0;
         while (isRunning) {
-            int i = 0;
-            while (i < players.size()) {
+
+            while (i <= players.size()) {
                 if (i == players.size()) {
                     i = 0;
                 }
-                Player p = getPlayer(i);
+                System.out.println("i = " + i);
+                Player p = players.get(i);
+                if (p.getSkip()) {
+                    System.out.println("Игрок " + p.getName() + " взял карты, пропускаем.");
+                    p.setSkip(false);
+                    ++i;
+                    continue;
+                }
+                if (p.getOut()) {
+                    System.out.println("Игрок " + p.getName() + " вышел, пропускаем.");
+                    ++i;
+                    continue;
+                }
                 System.out.println("Ходит " + p.getName());
 
                 Player opponent = getOpponent(p);
                 System.out.println("Отбивается " + opponent.getName());
 
-                Card attackC = p.attack();
+                p.printCards();
+                opponent.printCards();
 
+                Card attackC = p.attack();
                 Card winnerCard = opponent.defence(attackC);
 
                 if (winnerCard != null) {
                     System.out.println("Бито. ");
                     beaten.putCard(winnerCard);
                     beaten.putCard(attackC);
+                }
 
+                p.takeCards(stack, CARDS_QUANTITY);
+                opponent.takeCards(stack, CARDS_QUANTITY);
+
+                System.out.println("Бито: " + beaten.getLength() + " карт");
+                System.out.println("В колоде: " + stack.getLength() + " карт");
+
+                if (p.getCards().size() <= 0) {
+                    System.out.println("Игрок " + p.getName() + " выходит из игры");
+                    p.setOut(true);
+                }
+
+                if (opponent.getCards().size() <= 0) {
+                    System.out.println("Игрок " + opponent.getName() + " выходит из игры");
+                    opponent.setOut(true);
+                }
+
+                int countPlayers = 0;
+
+                System.out.println("В игре: ");
+                for (Player pp : players) {
+                    System.out.print(pp.getOut() ? "" : pp.getName() + "\n");
+                    if (!pp.getOut()) {
+                        ++countPlayers;
+                    }
+                }
+
+                if (countPlayers == 1) {
+                    for (Player pp : players) {
+                        if (!pp.getOut()) {
+                            fool = pp;
+                        }
+                    }
+                    System.out.println("В дураках остался " + fool.getName());
+                    isRunning = false;
+                    break;
                 }
 
                 ++i;
-                System.out.println("i = " + i);
+                //System.out.println("i = " + i);
                 if (exit()) {
                     isRunning = false;
                     break;
                 }
             }
-            /*Player attackP = players.get(firstPlayerIdx);
-            Player defenceP = players.get(firstPlayerIdx + 1);
-
-            Card attackC = attackP.attack();
-            System.out.print("Игрок ");
-            attackP.printName();
-            System.out.print(" ходит картой ");
-            attackC.printCard();
-
-            Card winnerCard = defenceP.defence(attackC);
-            if (winnerCard == null) {
-                System.out.print("Игрок ");
-                defenceP.printName();
-                System.out.println(" взял карту");
-                attackC.printCard();
-            } else {
-                System.out.print("Игрок ");
-                defenceP.printName();
-                System.out.print(" отбивает ");
-                System.out.print(" картой ");
-                winnerCard.printCard();
-            }
-
-            attackP.printCards();
-            defenceP.printCards();
-            attackP.takeCards(stack, CARDS_QUANTITY);
-            defenceP.takeCards(stack, CARDS_QUANTITY);
-            System.out.println("Бито. Подкидывать мы пока не умеем.");
-
-            beaten.putCard(winnerCard);
-            beaten.putCard(attackC);
-
-            attackP.printCards();
-            defenceP.printCards();
-            System.out.println("Козырь: " + Suits.getTrump().rusName());
-            System.out.println("В колоде: " + stack.getLength() + " карт");
-            System.out.println("Бито:  " + beaten.getLength() + " карт");
-            isRunning = false;*/
-
         }
+        System.out.println(fool != null ? "Пожелаем игроку " + fool.getName() + " удачи в следующей игре." : "Выход");
     }
 }
