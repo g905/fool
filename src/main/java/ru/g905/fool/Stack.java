@@ -35,7 +35,7 @@ class Stack {
             throw new Exception("Колода пуста");
         }
         Card cardToReturn = cards.get(cards.size() - 1);
-        cards.remove(cards.size() - 1);
+        cards.remove(cardToReturn);
         return cardToReturn;
     }
 
@@ -67,6 +67,10 @@ class Stack {
         cards.forEach((c) -> {
             c.setValue(trump);
         });
+    }
+
+    public ArrayList<Card> getCards() {
+        return cards;
     }
 
 }

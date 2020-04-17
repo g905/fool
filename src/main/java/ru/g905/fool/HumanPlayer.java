@@ -1,7 +1,13 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package ru.g905.fool;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -9,9 +15,9 @@ import static ru.g905.fool.GameLogic.CARDS_QUANTITY;
 
 /**
  *
- * @author g905
+ * @author zharnikov
  */
-class Player implements IPlayer {
+public class HumanPlayer implements IPlayer {
 
     final private String name;
 
@@ -21,18 +27,29 @@ class Player implements IPlayer {
 
     private boolean out = false;
 
-    Player(String nm) {
-        this.name = nm;
-        System.out.println("Игрок " + nm + " входит в игру.");
+    private final Scanner in;
+
+    HumanPlayer() {
+        in = new Scanner(System.in);
+        System.out.println("Как вас зовут?");
+        String a;
+        a = in.nextLine();
+        this.name = a;
+        System.out.println("Игрок " + a + " входит в игру.");
         cards = new ArrayList<>();
     }
 
     @Override
     public void takeCards(Stack s, int q) {
+        if (out) {
+            return;
+        }
         if (s.getLength() <= 0) {
+            System.out.println("Колода пуста. Игрок " + name + " не берет карты.");
             return;
         }
         if (cards.size() >= GameLogic.CARDS_QUANTITY) {
+            System.out.println("Игрок " + name + " не берет карты.");
             return;
         }
         int count = 0;
@@ -67,7 +84,9 @@ class Player implements IPlayer {
         return out;
     }
 
+    @Override
     public void takeCard(Stack s) throws Exception {
+        //System.out.println("Игрок " + name + " берет карту");
         try {
             cards.add(s.takeCard());
         } catch (Exception ex) {
@@ -79,17 +98,17 @@ class Player implements IPlayer {
         System.out.println(this.name);
     }
 
-    public void setName(String name) {
-    }
-
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public int getQuant() {
         return cards.size();
     }
 
+    @Override
     public void printCards() {
         System.out.print("У игрока " + name);
         if (cards.size() <= 0) {
@@ -103,31 +122,51 @@ class Player implements IPlayer {
         }
     }
 
+    @Override
     public ArrayList<Card> getCards() {
         return cards;
     }
 
+    @Override
     public void sortCards(Suits trump) {
         Collections.sort(cards);
     }
 
+    @Override
     public Card attack() {
-        try {
-            TimeUnit.MILLISECONDS.sleep(1000);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
-        }
         sortCards(Suits.getTrump());
-        Card cardToAttack = cards.get(0);
-        cards.remove(cardToAttack);
-        System.out.println("Игрок " + name + " ходит картой " + cardToAttack.getCard());
-        return cardToAttack;
+        System.out.println("Ваш ход! ");
+        System.out.println("Козырь - " + Suits.getTrump().rusName());
+        System.out.println("У вас такие карты: ");
+        int count = 1;
+        for (Card c : cards) {
+            System.out.print(count + ". ");
+            c.printCard();
+            ++count;
+        }
+        Boolean ask = true;
+        int a = -1;
+        while (ask) {
+            System.out.println("Какой картой ходить? ");
+            a = in.nextInt();
+            if (--a <= cards.size() && a >= 0) {
+                ask = false;
+            }
+        }
+        if (a > -1) {
+            Card cardToAttack = cards.get(a);
+            cards.remove(cardToAttack);
+            System.out.println("Вы ходите картой " + cardToAttack.getCard());
+            return cardToAttack;
+        }
+        return null;
     }
 
     public boolean canBeat(Card card, Card cardToDefeat) {
         return card.greaterThan(cardToDefeat);
     }
 
+    @Override
     public Card getLowestTrump(Suits trump) {
         Card lowest = null;
         for (int i = 0; i < cards.size(); ++i) {
@@ -141,77 +180,16 @@ class Player implements IPlayer {
         return lowest;
     }
 
+    @Override
     public boolean checkSkip() {
         if (skip) {
-            System.out.println("Игрок " + name + " взял карты, пропускаем.");
+            System.out.println("Вы взяли карты и пропускаете ход.");
             setSkip(false);
             return true;
         }
-        if (out) {
-            System.out.println("Игрок " + name + " вышел, пропускаем.");
-            return true;
-        }
-
-        return false;
+        return out;
     }
 
-    public ArrayList<Card> tDefence(Stack table) {
-        sortCards(Suits.getTrump());
-
-        System.out.println("Игрок " + name + " пытается отбиться:");
-
-        ArrayList<Card> cardsToReturn = new ArrayList<>();
-
-        out:
-        for (Card tc : table.getCards()) {
-            if (tc.getBeaten()) {
-                continue;
-            }
-            for (Card c : cards) {
-                if (c.greaterThan(tc)) {
-                    System.out.println("\tПобили карту " + tc.getCard() + " картой " + c.getCard());
-                    cards.remove(c);
-                    cardsToReturn.add(c);
-                    tc.setBeaten(true);
-                    c.setBeaten(true);
-                    break;
-                }
-                try {
-                    TimeUnit.MILLISECONDS.sleep(100);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        }
-
-        int count = 0;
-
-        for (Card c : table.getCards()) {
-            if (!c.getBeaten()) {
-                ++count;
-            }
-        }
-
-        if (count > 0) {
-            System.out.println("Не побили " + count + " карт. Берем:");
-            for (Card c : table.getCards()) {
-                System.out.println("\t" + c.getCard());
-            }
-            cards.addAll(cardsToReturn);
-            cardsToReturn.clear();
-            cards.addAll(table.getCards());
-            table.getCards().clear();
-            skip = true;
-            for (Card c : cards) {
-                c.setBeaten(false);
-            }
-        } else {
-            cards.removeAll(cardsToReturn);
-        }
-        return cardsToReturn;
-    }
-
-    @Override
     public void toss(Stack table, IPlayer opponent) {
         if (out) {
             return;
@@ -252,4 +230,60 @@ class Player implements IPlayer {
             table.putCards(cardsToToss);
         }
     }
+
+    @Override
+    public ArrayList<Card> tDefence(Stack table) {
+        sortCards(Suits.getTrump());
+
+        System.out.println("Игрок " + name + " пытается отбиться:");
+
+        ArrayList<Card> cardsToReturn = new ArrayList<>();
+        boolean success = true;
+
+        out:
+        for (Card tc : table.getCards()) {
+            if (tc.getBeaten()) {
+                System.out.println("Карта " + tc.getCard() + " уже побита, пропускаем.");
+                continue;
+            }
+            for (Card c : cards) {
+                if (c.greaterThan(tc)) {
+                    System.out.println("\tПобили карту " + tc.getCard() + " картой " + c.getCard());
+                    cards.remove(c);
+                    cardsToReturn.add(c);
+                    tc.setBeaten(true);
+                    c.setBeaten(true);
+                    break;
+                }
+            }
+        }
+
+        int count = 0;
+
+        for (Card c : table.getCards()) {
+            if (!c.getBeaten()) {
+                ++count;
+            }
+        }
+
+        if (count > 0) {
+            System.out.println("Не побили " + count + " карт. Берем:");
+            for (Card c : table.getCards()) {
+                System.out.println("\t" + c.getCard());
+            }
+            cards.addAll(cardsToReturn);
+            cardsToReturn.clear();
+            cards.addAll(table.getCards());
+            table.getCards().clear();
+            skip = true;
+            for (Card c : cards) {
+                c.setBeaten(false);
+            }
+        } else {
+            System.out.println("Игрок " + name + " отбился.");
+            cards.removeAll(cardsToReturn);
+        }
+        return cardsToReturn;
+    }
+
 }
